@@ -37,7 +37,10 @@ pub async fn get_info(
     id: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let data = LoginData { id: id.to_string() };
-    let headers = Some(Headers { auth_token });
+    let headers = Some(Headers { 
+        auth_token,
+        mobile_phone: String::new(),
+    });
 
     let response = request::request(
         PathBuf::from("community/coupon/center/info"),

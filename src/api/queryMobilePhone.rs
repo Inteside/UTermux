@@ -63,6 +63,7 @@ pub fn read_saved_token() -> Option<String> {
 pub async fn query_mobile_phone(auth_token: &str) -> Result<String, Box<dyn std::error::Error>> {
     let headers = Headers {
         auth_token: auth_token.to_string(),
+        mobile_phone: String::new(),
     };
     let response = request(
         PathBuf::from("userBase/queryMobilePhone"),

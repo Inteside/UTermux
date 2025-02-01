@@ -50,6 +50,7 @@ pub async fn fetch_receive(
 
         let headers = Headers {
             auth_token: auth_token.clone(),
+            mobile_phone: String::new(), // 如果不需要手机号，可以传空字符串
         };
 
         match request::request(
@@ -60,18 +61,26 @@ pub async fn fetch_receive(
         .await
         {
             Ok(response) => {
-                let json: ApiResponse = serde_json::from_str(&response).unwrap();
-                if json.success {
-                    return Ok("领取成功".to_string());
-                } else if json.responseCode == "2040" {
-                    return Err(ReceiveError(json.responseMsg)); // 已领取
-                } else {
-                    // 包括 2041 在内的其他情况都继续尝试
-                    tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
-                    continue;
+                match serde_json::from_str::<ApiResponse>(&response) {
+                    Ok(json) => {
+                        if json.success {
+                            return Ok("领取成功".to_string());
+                        } else if json.responseCode == "2040" {
+                            return Err(ReceiveError(json.responseMsg));
+                        } else {
+                            tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                            continue;
+                        }
+                    },
+                    Err(e) => {
+                        println!("JSON解析错误: {}, 响应内容: {}", e, response);
+                        tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
+                        continue;
+                    }
                 }
             }
-            Err(_) => {
+            Err(e) => {
+                // println!("请求错误:{:?}", e);
                 tokio::time::sleep(tokio::time::Duration::from_millis(50)).await;
                 continue;
             }
