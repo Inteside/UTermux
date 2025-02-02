@@ -16,3 +16,11 @@
 - 打开安装包
 - 输入auth_token和user_agent
 - 点击开始抢票
+
+## 📚操作方法
+- 键盘↑ ↓键选择任务 
+- 回车键开始任务
+- Delete清空info消息
+- tab键切换焦点
+- PgUp PgDn 翻页
+- Esc返回上一步
