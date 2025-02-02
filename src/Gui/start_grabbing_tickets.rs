@@ -566,6 +566,9 @@ pub async fn start_ticket_grabbing_logic(
     // 创建barrier等待所有任务就绪
     let barrier = Arc::new(Barrier::new(total_tasks));
 
+    // 设置每个任务的并发数
+    const CONCURRENT_REQUESTS: usize = 5; // 每个任务发送5个并发请求
+
     // 为每个任务创建独立线程
     for community_id in active_community_ids {
         let game_name = game_names
@@ -580,37 +583,40 @@ pub async fn start_ticket_grabbing_logic(
             if let Some(task_ids) = game_config.red_pack_tasks.get(ticket_name) {
                 let task_ids = task_ids.clone();
                 for task_id in task_ids {
-                    let auth_token = auth_token.clone();
-                    let console_sender = console_sender.clone();
-                    let community_id = community_id.clone();
-                    let game_name = game_name.clone();
-                    let ticket_name = ticket_name.to_string();
-                    let barrier = barrier.clone();
+                    // 为每个任务创建多个并发请求
+                    for _ in 0..CONCURRENT_REQUESTS {
+                        let auth_token = auth_token.clone();
+                        let console_sender = console_sender.clone();
+                        let community_id = community_id.clone();
+                        let game_name = game_name.clone();
+                        let ticket_name = ticket_name.to_string();
+                        let task_id = task_id.clone();
+                        let barrier = barrier.clone();
 
-                    let handle = std::thread::spawn(move || {
-                        let rt = tokio::runtime::Runtime::new().unwrap();
-                        rt.block_on(async {
-                            // 等待所有线程就绪
-                            barrier.wait();
+                        let handle = std::thread::spawn(move || {
+                            let rt = tokio::runtime::Runtime::new().unwrap();
+                            rt.block_on(async {
+                                barrier.wait();
 
-                            match fetch_receive(auth_token, task_id.clone(), community_id).await {
-                                Ok(msg) => {
-                                    let _ = console_sender
-                                        .send(format!("{}({}): {}", game_name, ticket_name, msg))
-                                        .await;
+                                match fetch_receive(auth_token, task_id.clone(), community_id).await {
+                                    Ok(msg) => {
+                                        let _ = console_sender
+                                            .send(format!("{}({}): {}", game_name, ticket_name, msg))
+                                            .await;
+                                    }
+                                    Err(e) => {
+                                        let _ = console_sender
+                                            .send(format!(
+                                                "{}({})抢票失败：{}",
+                                                game_name, ticket_name, e
+                                            ))
+                                            .await;
+                                    }
                                 }
-                                Err(e) => {
-                                    let _ = console_sender
-                                        .send(format!(
-                                            "{}({})抢票失败：{}",
-                                            game_name, ticket_name, e
-                                        ))
-                                        .await;
-                                }
-                            }
+                            });
                         });
-                    });
-                    handles.push(handle);
+                        handles.push(handle);
+                    }
                 }
             }
         }

@@ -16,6 +16,9 @@ pub struct GuiState {
     pub current_page: function_list, // 添加当前页面状态
     pub input_buffer: String,        // 输入缓冲区
     pub auth_token: String,          // auth_token
+    pub user_agent: String,          // 新增：存储 UserAgent
+    pub active_input: usize,        // 新增：当前激活的输入框（0: AuthToken, 1: UserAgent）
+    pub last_key: KeyCode,          // 新增：存储最后按下的键
     pub console_info: String,        // 控制台输出信息
     pub console_sender: tokio::sync::mpsc::Sender<String>, // 明确使用完整路径
     pub console_receiver: tokio::sync::mpsc::Receiver<String>, // 明确使用完整路径
@@ -77,6 +80,9 @@ async fn run(mut terminal: DefaultTerminal) -> Result<()> {
         current_page: function_list::Main, // 当前页面
         input_buffer: String::new(),       // 输入缓冲区
         auth_token: String::new(),         // 用户认证token
+        user_agent: String::new(),          // 新增：初始化 user_agent
+        active_input: 0,                  // 新增：初始化 active_input
+        last_key: KeyCode::Null,           // 新增：初始化 last_key
         console_info: String::new(),       // 控制台输出信息
         console_sender: sender,            // 明确使用完整路径
         console_receiver: receiver,        // 明确使用完整路径
@@ -169,17 +175,35 @@ async fn run(mut terminal: DefaultTerminal) -> Result<()> {
                                 }
                                 function_list::Login => {
                                     // 登录页面的输入处理逻辑
+                                    state.last_key = key.code;  // 保存最后按下的键
                                     match key.code {
                                         KeyCode::Char(c) => {
                                             if state.input_buffer.len() < MAX_INPUT_LENGTH {
                                                 state.input_buffer.push(c);
                                             } else {
-                                                state.console_info =
-                                                    "输入过长，已截断！".to_string();
+                                                state.console_info = "输入过长，已截断！".to_string();
                                             }
                                         }
                                         KeyCode::Backspace => {
                                             state.input_buffer.pop();
+                                        }
+                                        KeyCode::Tab => {
+                                            // 保存当前输入框的内容
+                                            if state.active_input == 0 {
+                                                state.auth_token = state.input_buffer.clone();
+                                            } else {
+                                                state.user_agent = state.input_buffer.clone();
+                                            }
+                                            // 切换输入框
+                                            state.active_input = (state.active_input + 1) % 2;
+                                            // 清空输入缓冲区
+                                            state.input_buffer.clear();
+                                            // 加载新激活输入框的内容到输入缓冲区
+                                            state.input_buffer = if state.active_input == 0 {
+                                                state.auth_token.clone()
+                                            } else {
+                                                state.user_agent.clone()
+                                            };
                                         }
                                         KeyCode::Enter => {
                                             handle_login_input(&mut state).await;

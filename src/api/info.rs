@@ -37,9 +37,9 @@ pub async fn get_info(
     id: String,
 ) -> Result<String, Box<dyn std::error::Error>> {
     let data = LoginData { id: id.to_string() };
-    let headers = Some(Headers { 
+    let headers = Some(Headers {
         auth_token,
-        mobile_phone: String::new(),
+        user_agent: None,
     });
 
     let response = request::request(

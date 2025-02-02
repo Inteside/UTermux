@@ -13,6 +13,7 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tokio;
+use crate::api::queryMobilePhone::TokenStorage;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SettingState {
@@ -30,22 +31,22 @@ pub struct SettingState {
 impl Default for SettingState {
     fn default() -> Self {
         let config_path = get_config_path();
-        // 读取并解析手机号配置
+        // 读取并解析账号配置
         let accounts = if let Some(path) = config_path {
             if let Ok(content) = fs::read_to_string(path) {
-                content
-                    .lines()
-                    .filter_map(|line| {
-                        if line.starts_with("MobilePhone:") {
-                            Some(format!(
-                                "[ ] {}",
-                                line.trim_start_matches("MobilePhone:").trim()
-                            ))
-                        } else {
-                            None
-                        }
-                    })
-                    .collect()
+                if let Ok(storage) = serde_json::from_str::<TokenStorage>(&content) {
+                    storage.records.into_iter()
+                        .map(|record| {
+                            if record.active {
+                                format!("[*] {}", record.mobile_phone)
+                            } else {
+                                format!("[ ] {}", record.mobile_phone)
+                            }
+                        })
+                        .collect()
+                } else {
+                    vec![]
+                }
             } else {
                 vec![]
             }
@@ -63,7 +64,7 @@ impl Default for SettingState {
                 "王者荣耀".to_string(),
                 "火影忍者".to_string(),
             ],
-            accounts, // 使用带有[ ]前缀的手机号列表
+            accounts,
         }
     }
 }
@@ -268,12 +269,24 @@ impl SettingState {
                     .iter()
                     .enumerate()
                     .map(|(i, account)| {
-                        let account_span = Span::raw(account);
+                        let is_active = account.starts_with("[*]");
+                        let account_text = account.trim_start_matches("[*] ")
+                            .trim_start_matches("[ ] ");
+                        
+                        let prefix = if is_active {
+                            Span::styled("[*] ", Style::default().fg(Color::Red))
+                        } else {
+                            Span::raw("[ ] ")
+                        };
+                        
+                        let account_span = Span::raw(account_text);
+                        let spans = vec![prefix, account_span];
+
                         if i == self.popup_index {
-                            Line::from(account_span)
+                            Line::from(spans)
                                 .style(Style::default().fg(Color::Black).bg(Color::White))
                         } else {
-                            Line::from(account_span)
+                            Line::from(spans)
                         }
                     })
                     .collect();
@@ -389,6 +402,9 @@ impl SettingState {
                                         setting_state: SettingState::default(),
                                         setting_index: 0,
                                         show_prop: false,
+                                        active_input: 0,
+                                        last_key: KeyCode::Enter,
+                                        user_agent: String::new(),
                                     };
 
                                     SettingState::save_settings_static(
@@ -412,22 +428,43 @@ impl SettingState {
                         1 => {
                             if !gui_state.setting_state.accounts.is_empty() {
                                 let account_index = gui_state.setting_state.popup_index;
-                                let account =
-                                    gui_state.setting_state.accounts[account_index].clone();
-                                let new_account = if account.starts_with("[ ]") {
-                                    account.replace("[ ]", "[*]")
-                                } else {
-                                    account.replace("[*]", "[ ]")
-                                };
-                                gui_state.setting_state.accounts[account_index] =
-                                    new_account.clone();
-                                gui_state.add_console_message(format!(
-                                    "已选择-{}",
-                                    new_account
-                                        .trim_start_matches("[*]")
-                                        .trim_start_matches("[ ]")
-                                        .trim()
-                                ));
+                                
+                                // 读取当前的token存储
+                                if let Some(path) = get_config_path() {
+                                    if let Ok(content) = fs::read_to_string(&path) {
+                                        if let Ok(mut storage) = serde_json::from_str::<TokenStorage>(&content) {
+                                            // 切换选中状态
+                                            if let Some(record) = storage.records.get_mut(account_index) {
+                                                record.active = !record.active;
+                                            }
+                                            
+                                            // 保存更新后的配置
+                                            if let Ok(json_content) = serde_json::to_string_pretty(&storage) {
+                                                if let Err(e) = fs::write(&path, json_content) {
+                                                    gui_state.add_console_message(
+                                                        format!("保存账号配置失败: {}", e)
+                                                    );
+                                                } else {
+                                                    // 更新UI显示
+                                                    gui_state.setting_state.accounts = storage.records
+                                                        .into_iter()
+                                                        .map(|record| {
+                                                            if record.active {
+                                                                format!("[*] {}", record.mobile_phone)
+                                                            } else {
+                                                                format!("[ ] {}", record.mobile_phone)
+                                                            }
+                                                        })
+                                                        .collect();
+                                                    
+                                                    gui_state.add_console_message(
+                                                        "账号状态切换成功".to_string()
+                                                    );
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         _ => {}
