@@ -14,19 +14,17 @@ pub async fn fetch_receive(
 ) -> Result<String, ReceiveError> {
     let start_time = Instant::now();
     let timeout_duration = Duration::from_secs(5);
-    let mut success = false;
 
-    // 减少并发任务数量，但保持持续请求
+    // 减少并发数量到2个
     let mut handles = vec![];
-    for _ in 0..5 {
-        // 从10减少到5个并发任务
+    for _ in 0..2 {
         let auth_token = auth_token.clone();
         let red_pack_task_id = red_pack_task_id.clone();
         let community_id = community_id.clone();
 
         let handle = tokio::spawn(async move {
             let mut last_error = None;
-
+            
             while Instant::now().duration_since(start_time) < timeout_duration {
                 let current_zone_id = ZONE_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
 
@@ -41,58 +39,63 @@ pub async fn fetch_receive(
                     user_agent: crate::api::queryMobilePhone::read_saved_user_agent(),
                 };
 
-                match request::request(
-                    PathBuf::from("community/coupon/center/receive"),
-                    Some(data),
-                    Some(headers),
+                // 增加单个请求超时时间
+                match tokio::time::timeout(
+                    Duration::from_secs(2), // 增加到2秒
+                    request::request(
+                        PathBuf::from("community/coupon/center/receive"),
+                        Some(data),
+                        Some(headers),
+                    ),
                 )
                 .await
                 {
-                    Ok(response) => {
-                        let json: ApiResponse = serde_json::from_str(&response).unwrap();
+                    Ok(Ok(response)) => {
+                        let json: ApiResponse = match serde_json::from_str(&response) {
+                            Ok(json) => json,
+                            Err(_) => {
+                                last_error = Some(ReceiveError("响应格式错误".to_string()));
+                                continue;
+                            }
+                        };
+                        
                         if json.success {
                             return Ok("领取成功".to_string());
                         } else if json.responseCode == "2040" {
-                            return Err(ReceiveError(json.responseMsg)); // 已领取
+                            return Err(ReceiveError(json.responseMsg));
                         }
                         last_error = Some(ReceiveError(json.responseMsg));
                     }
-                    Err(e) => {
+                    Ok(Err(e)) => {
                         last_error = Some(ReceiveError(e.to_string()));
+                    }
+                    Err(_) => {
+                        last_error = Some(ReceiveError("请求超时".to_string()));
                     }
                 }
 
-                // 添加小延迟以减少CPU使用
-                tokio::time::sleep(Duration::from_millis(20)).await;
+                // 增加请求间隔
+                tokio::time::sleep(Duration::from_millis(100)).await;
             }
 
             Err(last_error.unwrap_or_else(|| ReceiveError("请求超时".to_string())))
         });
 
-        // 在创建任务之间添加小延迟，避免瞬间创建大量任务
-        tokio::time::sleep(Duration::from_millis(10)).await;
         handles.push(handle);
+        
+        // 增加任务创建间隔
+        tokio::time::sleep(Duration::from_millis(50)).await;
     }
 
-    // 等待任何一个任务成功或所有任务完成
     let mut last_error = None;
     for handle in handles {
         match handle.await.unwrap() {
-            Ok(msg) => {
-                success = true;
-                return Ok(msg);
-            }
-            Err(e) => {
-                last_error = Some(e);
-            }
+            Ok(msg) => return Ok(msg),
+            Err(e) => last_error = Some(e),
         }
     }
 
-    if success {
-        Ok("领取成功".to_string())
-    } else {
-        Err(last_error.unwrap_or_else(|| ReceiveError("所有请求均失败".to_string())))
-    }
+    Err(last_error.unwrap_or_else(|| ReceiveError("所有请求均失败".to_string())))
 }
 
 #[derive(Debug)]
