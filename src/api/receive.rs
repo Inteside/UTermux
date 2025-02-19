@@ -5,6 +5,8 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::time::{Duration, Instant};
+use std::collections::HashMap;
+use serde::Deserialize;
 
 // 添加静态变量来追踪 zoneId
 static ZONE_ID_COUNTER: AtomicU32 = AtomicU32::new(1);
@@ -28,17 +30,39 @@ pub async fn fetch_receive(
             let mut last_error = None;
 
             while Instant::now().duration_since(start_time) < timeout_duration {
-                // let current_zone_id = ZONE_ID_COUNTER.fetch_add(2, Ordering::SeqCst);
-                let current_zone_id = fs::read_to_string(format!(
+                // 读取配置文件
+                let config_content = fs::read_to_string(format!(
                     "{}/UTermux/AppGame.json",
                     config_dir().unwrap().to_str().unwrap()
                 ))
-                .unwrap();
+                .map_err(|e| ReceiveError(format!("读取配置文件失败: {}", e)))?;
+
+                let game_configs: HashMap<String, GameConfig> = serde_json::from_str(&config_content)
+                    .map_err(|e| ReceiveError(format!("解析配置文件失败: {}", e)))?;
+
+                // 查找对应的游戏配置
+                let game_config = game_configs
+                    .values()
+                    .find(|config| config.communityId == community_id)
+                    .ok_or_else(|| ReceiveError("未找到对应的游戏配置".to_string()))?;
+
+                // 在所有专区中查找包含当前 red_pack_task_id 的专区，忽略第0项
+                let zone_id = game_config
+                    .red_pack_tasks
+                    .iter()
+                    .find_map(|(_, tasks)| {
+                        if tasks[1..].contains(&red_pack_task_id) {
+                            Some(tasks[0].clone())
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or_else(|| ReceiveError("未找到对应的专区ID".to_string()))?;
 
                 let data = Data {
                     communityId: community_id.clone(),
                     redPackTaskId: red_pack_task_id.clone(),
-                    zoneId: current_zone_id.to_string(),
+                    zoneId: zone_id,
                 };
 
                 let headers = Headers {
@@ -132,4 +156,13 @@ async fn test_read_app_game_json() {
     ))
     .unwrap();
     println!("{}", app_game_json);
+}
+
+// 添加 GameConfig 结构体定义
+#[derive(Deserialize)]
+struct GameConfig {
+    communityId: String,
+    red_pack_tasks: HashMap<String, Vec<String>>,
+    #[serde(default)]
+    active: bool,
 }
