@@ -1,5 +1,7 @@
 use crate::api::ApiResponse;
 use crate::utils::request::{self, Data, Headers};
+use dirs::config_dir;
+use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU32, Ordering};
 use tokio::time::{Duration, Instant};
@@ -13,20 +15,25 @@ pub async fn fetch_receive(
     community_id: String,
 ) -> Result<String, ReceiveError> {
     let start_time = Instant::now();
-    let timeout_duration = Duration::from_secs(5);
+    let timeout_duration = Duration::from_secs(2); // 控制请求超时时间
 
     // 减少并发数量到2个
     let mut handles = vec![];
-    for _ in 0..2 {
+    for _ in 0..1 {
         let auth_token = auth_token.clone();
         let red_pack_task_id = red_pack_task_id.clone();
         let community_id = community_id.clone();
 
         let handle = tokio::spawn(async move {
             let mut last_error = None;
-            
+
             while Instant::now().duration_since(start_time) < timeout_duration {
-                let current_zone_id = ZONE_ID_COUNTER.fetch_add(1, Ordering::SeqCst);
+                // let current_zone_id = ZONE_ID_COUNTER.fetch_add(2, Ordering::SeqCst);
+                let current_zone_id = fs::read_to_string(format!(
+                    "{}/UTermux/AppGame.json",
+                    config_dir().unwrap().to_str().unwrap()
+                ))
+                .unwrap();
 
                 let data = Data {
                     communityId: community_id.clone(),
@@ -58,7 +65,7 @@ pub async fn fetch_receive(
                                 continue;
                             }
                         };
-                        
+
                         if json.success {
                             return Ok("领取成功".to_string());
                         } else if json.responseCode == "2040" {
@@ -82,7 +89,7 @@ pub async fn fetch_receive(
         });
 
         handles.push(handle);
-        
+
         // 增加任务创建间隔
         tokio::time::sleep(Duration::from_millis(50)).await;
     }
@@ -115,4 +122,14 @@ impl std::fmt::Display for ReceiveError {
 async fn test_fetch_info() {
     let response = fetch_receive("123".to_string(), "123".to_string(), "14".to_string()).await;
     println!("{:#?}", response);
+}
+
+#[tokio::test]
+async fn test_read_app_game_json() {
+    let app_game_json = fs::read_to_string(format!(
+        "{}/UTermux/AppGame.json",
+        config_dir().unwrap().to_str().unwrap()
+    ))
+    .unwrap();
+    println!("{}", app_game_json);
 }

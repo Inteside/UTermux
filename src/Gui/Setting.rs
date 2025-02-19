@@ -1,4 +1,5 @@
 use crate::api::queryMobilePhone::get_config_path;
+use crate::api::queryMobilePhone::TokenStorage;
 use crate::Gui::Gui::render_common_layout;
 use crate::{function_list, GuiState};
 use crossterm::event::KeyCode;
@@ -13,7 +14,6 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::PathBuf;
 use tokio;
-use crate::api::queryMobilePhone::TokenStorage;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct SettingState {
@@ -35,7 +35,9 @@ impl Default for SettingState {
         let accounts = if let Some(path) = config_path {
             if let Ok(content) = fs::read_to_string(path) {
                 if let Ok(storage) = serde_json::from_str::<TokenStorage>(&content) {
-                    storage.records.into_iter()
+                    storage
+                        .records
+                        .into_iter()
                         .map(|record| {
                             if record.active {
                                 format!("[*] {}", record.mobile_phone)
@@ -270,15 +272,16 @@ impl SettingState {
                     .enumerate()
                     .map(|(i, account)| {
                         let is_active = account.starts_with("[*]");
-                        let account_text = account.trim_start_matches("[*] ")
+                        let account_text = account
+                            .trim_start_matches("[*] ")
                             .trim_start_matches("[ ] ");
-                        
+
                         let prefix = if is_active {
                             Span::styled("[*] ", Style::default().fg(Color::Red))
                         } else {
                             Span::raw("[ ] ")
                         };
-                        
+
                         let account_span = Span::raw(account_text);
                         let spans = vec![prefix, account_span];
 
@@ -428,37 +431,51 @@ impl SettingState {
                         1 => {
                             if !gui_state.setting_state.accounts.is_empty() {
                                 let account_index = gui_state.setting_state.popup_index;
-                                
+
                                 // 读取当前的token存储
                                 if let Some(path) = get_config_path() {
                                     if let Ok(content) = fs::read_to_string(&path) {
-                                        if let Ok(mut storage) = serde_json::from_str::<TokenStorage>(&content) {
+                                        if let Ok(mut storage) =
+                                            serde_json::from_str::<TokenStorage>(&content)
+                                        {
                                             // 切换选中状态
-                                            if let Some(record) = storage.records.get_mut(account_index) {
+                                            if let Some(record) =
+                                                storage.records.get_mut(account_index)
+                                            {
                                                 record.active = !record.active;
                                             }
-                                            
+
                                             // 保存更新后的配置
-                                            if let Ok(json_content) = serde_json::to_string_pretty(&storage) {
+                                            if let Ok(json_content) =
+                                                serde_json::to_string_pretty(&storage)
+                                            {
                                                 if let Err(e) = fs::write(&path, json_content) {
-                                                    gui_state.add_console_message(
-                                                        format!("保存账号配置失败: {}", e)
-                                                    );
+                                                    gui_state.add_console_message(format!(
+                                                        "保存账号配置失败: {}",
+                                                        e
+                                                    ));
                                                 } else {
                                                     // 更新UI显示
-                                                    gui_state.setting_state.accounts = storage.records
+                                                    gui_state.setting_state.accounts = storage
+                                                        .records
                                                         .into_iter()
                                                         .map(|record| {
                                                             if record.active {
-                                                                format!("[*] {}", record.mobile_phone)
+                                                                format!(
+                                                                    "[*] {}",
+                                                                    record.mobile_phone
+                                                                )
                                                             } else {
-                                                                format!("[ ] {}", record.mobile_phone)
+                                                                format!(
+                                                                    "[ ] {}",
+                                                                    record.mobile_phone
+                                                                )
                                                             }
                                                         })
                                                         .collect();
-                                                    
+
                                                     gui_state.add_console_message(
-                                                        "账号状态切换成功".to_string()
+                                                        "账号状态切换成功".to_string(),
                                                     );
                                                 }
                                             }

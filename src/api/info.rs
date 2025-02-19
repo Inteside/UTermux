@@ -25,6 +25,7 @@ pub struct InfoObject {
 pub struct ZoneRed {
     redList: Vec<RedItem>,
     zoneName: String,
+    zoneId: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -52,23 +53,28 @@ pub async fn get_info(
 
     let info: InfoResponse = serde_json::from_str(&response)?;
 
-    // 收集所有的 redPackTaskId 和 zoneName
+    // 收集所有的 redPackTaskId 和 zoneName还有zoneId
     let mut result = Vec::new();
     for zone in &info.object.zoneRedList {
         let mut ids = Vec::new();
         for red_item in &zone.redList {
             ids.push(red_item.redPackTaskId.to_string());
         }
-        // 将zoneName和对应的ID列表组合
-        result.push(format!("{}:{}", zone.zoneName, ids.join(",")));
+        // 将 zoneName、zoneId 和对应的 ID 列表组合
+        result.push(format!(
+            "{}:{},{}",
+            zone.zoneName,
+            zone.zoneId,
+            ids.join(",")
+        ));
     }
 
-    Ok(result.join(";")) // 用分号分隔不同分类，分类名和ID之间用冒号分隔
+    Ok(result.join(";"))
 }
 
 #[tokio::test]
 async fn test_get_info() {
     let auth_token = read_saved_token().unwrap();
-    let red_pack_task_id = get_info(auth_token, "7".to_string()).await.unwrap();
+    let red_pack_task_id = get_info(auth_token, "14".to_string()).await.unwrap();
     println!("RedPackTaskId: {}", red_pack_task_id);
 }

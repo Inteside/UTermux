@@ -316,7 +316,7 @@ pub fn handle_start_ticket_grabbing_input(
                     timed_state.selected_tickets.len().saturating_sub(1)
                 } else {
                     // 计算实际可选的票种数量
-                    (0..8)
+                    (0..4)
                         .filter(|i| !timed_state.selected_tickets.contains(i))
                         .count()
                         .saturating_sub(1)
