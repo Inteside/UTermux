@@ -54,16 +54,33 @@ impl Default for SettingState {
             vec![]
         };
 
+        // 从配置文件加载游戏列表
+        let (games, game_selections) = if let Some(path) = Self::get_config_path().parent() {
+            let config_path = path.join("AppGame.json");
+            if let Ok(content) = fs::read_to_string(config_path) {
+                if let Ok(game_map) = serde_json::from_str::<HashMap<String, GameConfig>>(&content) {
+                    let mut games: Vec<String> = game_map.keys().cloned().collect();
+                    games.sort(); // 对游戏列表进行排序
+                    let selections: Vec<bool> = games.iter()
+                        .map(|game| game_map.get(game).map(|config| config.active).unwrap_or(false))
+                        .collect();
+                    (games, selections)
+                } else {
+                    (vec![], vec![])
+                }
+            } else {
+                (vec![], vec![])
+            }
+        } else {
+            (vec![], vec![])
+        };
+
         Self {
             setting_index: 0,
             show_prop: false,
-            game_selections: vec![false; 3],
+            game_selections,
             popup_index: 0,
-            games: vec![
-                "三国杀".to_string(),
-                "王者荣耀".to_string(),
-                "火影忍者".to_string(),
-            ],
+            games,
             accounts,
         }
     }
@@ -80,30 +97,19 @@ struct GameConfig {
 
 impl SettingState {
     pub fn new(gui_state: &mut GuiState) -> Self {
-        let games = vec![
-            "三国杀".to_string(),
-            "王者荣耀".to_string(),
-            "火影忍者".to_string(),
-        ];
-        gui_state.add_console_message(format!("初始化设置状态，游戏列表：{:?}", games));
-
-        let mut state = Self {
-            setting_index: 0,
-            show_prop: false,
-            game_selections: vec![false; games.len()], // 初始化时所有游戏都未选中
-            popup_index: 0,
-            games: games.clone(),
-            accounts: vec!["账号1".to_string(), "账号2".to_string()], // 添加默认账号
-        };
-
-        // 先加载设置，这样可以恢复保存的选择状态
-        state.load_settings(gui_state);
-
-        // 确保游戏列表不为空
+        let mut state = Self::default();
+        
+        // 如果游戏列表为空，添加默认游戏
         if state.games.is_empty() {
-            state.games = games;
-            state.game_selections = vec![false; state.games.len()]; // 重置为未选中状态
-            gui_state.add_console_message(format!("重新初始化空游戏列表：{:?}", state.games));
+            state.games = vec![
+                "三国杀".to_string(),
+                "王者荣耀".to_string(),
+                "火影忍者".to_string(),
+            ];
+            state.game_selections = vec![false; state.games.len()];
+            gui_state.add_console_message(format!("使用默认游戏列表：{:?}", state.games));
+        } else {
+            gui_state.add_console_message(format!("从配置文件加载游戏列表：{:?}", state.games));
         }
 
         // 确保配置文件存在，如果不存在则创建默认配置
@@ -111,7 +117,6 @@ impl SettingState {
             Self::save_settings_static(&state.games, &state.game_selections, gui_state);
         }
 
-        gui_state.add_console_message(format!("最终游戏列表：{:?}", state.games));
         state
     }
 
