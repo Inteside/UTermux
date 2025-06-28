@@ -1,0 +1,16 @@
+name: Run Ticket CLI
+on:
+  schedule:
+    # 指定时间运行
+    - cron: '0 18 * * *' # 18:00:00 运行一次
+jobs:
+  run-ticket:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - name: Run CLI
+        run: cargo run --release
