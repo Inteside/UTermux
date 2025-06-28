@@ -1,4 +1,11 @@
 {
-    "auth_token": "200614",
-    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
+  "header": {
+    "auth_token": "d8AZUpWrOsfV1GUfqhPS4EQ08BfnRuJ2xIRU0hrPRCD9l32AHpr5QgqtPysy5y_cLJ5vuDm34Cwj2fltIbFO6HFfVzG85e550Q2svY1FfVisWsScTsPNhF89U7XCb7Tp6UWvv2SAq22V2NfQW17DZUC8MNXD-zmIXV2AhZaBBNzKJ2dXeb7-nZBdaxATxrnOz9r6AOlgOeBNRthrO3Vr",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+  },
+  "body": {
+    "communityId": "54",
+    "redPackTaskId": "66578",
+    "zoneId": "214"
   }
+}

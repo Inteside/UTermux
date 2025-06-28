@@ -1,7 +1,12 @@
+mod api;
+mod utils;
+
 use clap::Parser;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
+use api::receive;
+use reqwest::header::HeaderMap;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -19,10 +24,27 @@ struct Cli {
     concurrency: usize,
 }
 
+// ConfigFile
 #[derive(Serialize, Deserialize, Debug)]
-struct AccountConfig {
-    auth_token: String,
-    user_agent: String,
+pub struct ConfigFile {
+    pub header: HeaderConfig,
+    pub body: BodyConfig,
+}
+
+
+// Header
+#[derive(Serialize, Deserialize, Debug)]
+pub struct HeaderConfig {
+    pub auth_token: String,
+    pub user_agent: String,
+}
+
+// Body
+#[derive(Serialize, Deserialize, Debug)]
+pub struct BodyConfig {
+    pub communityId: String,
+    pub redPackTaskId: String,
+    pub zoneId: String,
 }
 
 #[tokio::main]
@@ -30,9 +52,19 @@ async fn main() {
     let cli = Cli::parse();
     let config_content = fs::read_to_string(&cli.config)
         .expect("无法读取配置文件，请检查路径");
-    let account: AccountConfig = serde_json::from_str(&config_content)
+    println!("config_content: {}", config_content);
+    let account: ConfigFile = serde_json::from_str(&config_content)
         .expect("配置文件格式错误");
-    println!("账号配置: {:?}", account);
+    println!("账号配置: {:#?}", account);
     println!("定时: {} 秒, 并发: {}", cli.interval, cli.concurrency);
-    // TODO: 这里实现定时+并发抢票逻辑
+
+    // 设置请求头
+    let mut header = HeaderMap::new();
+    header.insert("User-Agent", account.header.user_agent.parse().unwrap());
+    header.insert("authtoken", account.header.auth_token.parse().unwrap());
+    header.insert("Content-Type", "application/json".parse().unwrap());
+
+    // 设置请求参数
+    let params = receive::Receive { header, body: account.body };
+    receive::receive(params).await;
 }
