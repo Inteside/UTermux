@@ -14,7 +14,7 @@ pub struct Receive {
 pub async fn receive(params: Receive) {
     let request = request::Request::new();
     let request_body = request::RequestBody {
-        path: PathBuf::from("https://mapi.uhaozu.com/api/community/coupon/center/receive"),
+        url: "https://mapi.uhaozu.com/api/community/coupon/center/receive".to_string(),
         method: Method::POST,
         headers: params.header,
         body: serde_json::to_string(&params.body).unwrap(),

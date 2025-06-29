@@ -8,7 +8,7 @@ pub struct Request {
 
 // 请求体
 pub struct RequestBody {
-    pub path: PathBuf,
+    pub url: String,
     pub method: Method,
     pub headers: HeaderMap,
     pub body: String,
@@ -24,7 +24,7 @@ impl Request {
     pub async fn request(&self, request_body: RequestBody) -> Result<String, reqwest::Error> {
         let response = self
             .client
-            .request(request_body.method, request_body.path.to_str().unwrap())
+            .request(request_body.method, &request_body.url)
             .headers(request_body.headers)
             .body(request_body.body)
             .send()
