@@ -31,4 +31,6 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-
       - name: 构建并运行 CLI 🚀
-        run: cargo run --release
+        run: |
+          cargo test --receive
+          cargo run --release
