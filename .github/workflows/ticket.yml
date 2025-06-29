@@ -33,3 +33,7 @@ jobs:
       - name: 构建并运行 CLI 🚀
         run: |
           cargo run --release
+      - name: Curl test
+        run: curl -v https://mapi.uhaozu.com/api/community/coupon/center/receive || true
+      - name: Check DNS
+        run: nslookup mapi.uhaozu.com
