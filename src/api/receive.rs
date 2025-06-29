@@ -34,6 +34,8 @@ mod tests {
     #[tokio::test]
     // 测试其他url
     async fn test_other_url() {
+        // 初始化日志
+        let _ = env_logger::builder().is_test(true).try_init();
         let request = request::Request::new();
         let request_body = request::RequestBody {
             url: "https://www.google.com/".to_string(),

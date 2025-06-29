@@ -32,5 +32,4 @@ jobs:
             ${{ runner.os }}-cargo-
       - name: 构建并运行 CLI 🚀
         run: |
-          cargo test test_other_url -- --nocapture
           cargo run --release
