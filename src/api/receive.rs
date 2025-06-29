@@ -22,6 +22,7 @@ pub async fn receive(params: Receive) {
     let result = request.request(request_body).await;
     if result.is_err() {
         println!("请求失败: {:?}", result.err());
+        // 打印请求之后的请求头
     } else {
         println!("请求成功: {:?}", result.unwrap());
     }

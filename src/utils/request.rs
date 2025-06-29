@@ -17,7 +17,7 @@ pub struct RequestBody {
 impl Request {
     pub fn new() -> Self {
         Self {
-            client: Client::builder().danger_accept_invalid_certs(true).build().unwrap(),
+            client: Client::new(),
         }
     }
 
