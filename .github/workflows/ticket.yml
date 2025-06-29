@@ -12,15 +12,15 @@ jobs:
   run-ticket:
     runs-on: ubuntu-latest
     steps:
-      - name: 部署代码
+      - name: 部署代码 📦
         uses: actions/checkout@v4
-      - name: 安装 Rust
+      - name: 安装 Rust 🔧
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
-      - name: 缓存 Rust 依赖
+      - name: 缓存 Rust 依赖 ⚡
         uses: actions/cache@v4
         with:
           path: |
@@ -30,5 +30,5 @@ jobs:
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
             ${{ runner.os }}-cargo-
-      - name: 构建并运行 CLI
+      - name: 构建并运行 CLI 🚀
         run: cargo run --release

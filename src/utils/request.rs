@@ -1,5 +1,5 @@
 use reqwest::Client;
-use reqwest::{header::HeaderMap, Method};
+use reqwest::{Method, header::HeaderMap};
 use std::path::PathBuf;
 
 pub struct Request {
@@ -17,7 +17,7 @@ pub struct RequestBody {
 impl Request {
     pub fn new() -> Self {
         Self {
-            client: Client::new(),
+            client: Client::builder().danger_accept_invalid_certs(true).build().unwrap(),
         }
     }
 
