@@ -1,12 +1,16 @@
 mod api;
 mod utils;
 
+use api::receive;
 use clap::Parser;
+use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use api::receive;
-use reqwest::header::HeaderMap;
+use chrono::{Local, Timelike, Datelike, NaiveTime, Duration as ChronoDuration};
+use tokio::time::{sleep, Duration};
+use std::fs::File;
+use std::io::{BufRead, BufReader};
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -31,16 +35,15 @@ pub struct ConfigFile {
     pub body: BodyConfig,
 }
 
-
 // Header
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct HeaderConfig {
     pub auth_token: String,
     pub user_agent: String,
 }
 
 // Body
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BodyConfig {
     pub communityId: String,
     pub redPackTaskId: String,
@@ -50,13 +53,28 @@ pub struct BodyConfig {
 #[tokio::main]
 async fn main() {
     let cli = Cli::parse();
-    let config_content = fs::read_to_string(&cli.config)
-        .expect("无法读取配置文件，请检查路径");
+    let config_content = fs::read_to_string(&cli.config).expect("无法读取配置文件，请检查路径");
     println!("config_content: {}", config_content);
-    let account: ConfigFile = serde_json::from_str(&config_content)
-        .expect("配置文件格式错误");
+    let account: ConfigFile = serde_json::from_str(&config_content).expect("配置文件格式错误");
     println!("账号配置: {:#?}", account);
     println!("定时: {} 秒, 并发: {}", cli.interval, cli.concurrency);
+
+    // 读取 setting.ini 的定时配置
+    let mut trigger_time_str = String::from("18:59:59"); // 默认值
+    if let Ok(file) = File::open("setting.ini") {
+        let reader = BufReader::new(file);
+        for line in reader.lines() {
+            if let Ok(l) = line {
+                if l.trim().starts_with("time=") {
+                    if let Some(t) = l.trim().strip_prefix("time=") {
+                        trigger_time_str = t.trim().to_string();
+                    }
+                }
+            }
+        }
+    }
+    println!("定时配置: {}", trigger_time_str);
+    let target_time = NaiveTime::parse_from_str(&trigger_time_str, "%H:%M:%S").unwrap_or_else(|_| NaiveTime::from_hms_opt(18, 59, 59).unwrap());
 
     // 设置请求头
     let mut header = HeaderMap::new();
@@ -65,6 +83,68 @@ async fn main() {
     header.insert("Content-Type", "application/json".parse().unwrap());
 
     // 设置请求参数
-    let params = receive::Receive { header, body: account.body };
-    receive::receive(params).await;
+    let params = receive::Receive {
+        header,
+        body: account.body,
+    };
+
+    loop {
+        // 获取当前本地时间
+        let now = Local::now();
+        // 构造今天的目标时间
+        let today_target = now.date_naive().and_time(target_time);
+        let next_trigger = if now.time() < target_time {
+            today_target
+        } else {
+            // 已经过了今天的目标时间，等到明天
+            (now.date_naive() + ChronoDuration::days(1)).and_time(target_time)
+        };
+        let duration_to_wait = next_trigger - now.naive_local();
+        let secs = duration_to_wait.num_seconds();
+        println!("距离下次请求还有 {} 秒 (目标时间: {})", secs, next_trigger);
+        if secs > 0 {
+            sleep(Duration::from_secs(secs as u64)).await;
+        }
+        // 到点后调用请求
+        println!("到点，开始发送请求");
+        receive::receive(params.clone()).await;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use reqwest::{Client, Proxy};
+
+    #[tokio::test]
+    // 进行http代理请求测试
+    async fn test_http_proxy() {
+        // 创建代理配置
+        let proxy = Proxy::http("http://103.41.81.176:80").unwrap();
+
+        // 创建 HTTP 客户端并设置代理
+        let client = Client::builder().proxy(proxy).build().unwrap();
+
+        // 发送 GET 请求
+        let response = client
+            .get("http://api.ipify.org") // 使用这个 API 检查你的 IP
+            .send()
+            .await
+            .unwrap();
+
+        // 检查响应状态
+        if response.status().is_success() {
+            let status = response.status();
+            let body = response.text().await.unwrap();
+            // 如果响应状态码是404,则说明失败
+            if status == 404 {
+                println!("请求失败，状态码: {}", status);
+                return;
+            }
+            println!("响应内容: {}", body);
+        } else {
+            println!("请求失败，状态码: {}", response.status());
+            return;
+        }
+    }
 }
