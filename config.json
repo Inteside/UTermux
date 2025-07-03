@@ -4,8 +4,8 @@
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
   },
   "body": {
-    "communityId": "54",
-    "redPackTaskId": "66578",
-    "zoneId": "214"
+    "community_id": "54",
+    "red_pack_task_id": "66578",
+    "zone_id": "214"
   }
 }

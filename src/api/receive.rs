@@ -1,9 +1,9 @@
-use crate::utils::{request, request::Request, request::RequestBody};
-use crate::{BodyConfig, HeaderConfig};
+use crate::BodyConfig;
+use crate::utils::config::AppConfig;
+use crate::utils::request;
 use reqwest::Method;
 use reqwest::header::HeaderMap;
-use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use serde_json::json;
 
 #[derive(Clone, Debug)]
 pub struct Receive {
@@ -13,12 +13,18 @@ pub struct Receive {
 
 // 获取优惠券接口
 pub async fn receive(params: Receive) {
-    let request = request::Request::new();
+    // 读取setting.ini 的并发数
+    let config = AppConfig::from_ini("setting.ini");
+    let request = request::Request::new(config.thread);
     let request_body = request::RequestBody {
         url: "https://mapi.uhaozu.com/api/community/coupon/center/receive".to_string(),
         method: Method::POST,
         headers: params.header,
-        body: serde_json::to_string(&params.body).unwrap(),
+        body: json!({
+            "communityId": params.body.community_id,
+            "redPackTaskId": params.body.red_pack_task_id,
+            "zoneId": params.body.zone_id,
+        }).to_string(),
     };
     let result = request.request(request_body).await;
     if result.is_err() {
@@ -39,9 +45,9 @@ mod tests {
         let params = Receive {
             header: HeaderMap::new(),
             body: BodyConfig {
-                communityId: "54".to_string(),
-                redPackTaskId: "66578".to_string(),
-                zoneId: "214".to_string(),
+                community_id: "54".to_string(),
+                red_pack_task_id: "66578".to_string(),
+                zone_id: "214".to_string(),
             },
         };
         receive(params).await;

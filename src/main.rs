@@ -2,15 +2,21 @@ mod api;
 mod utils;
 
 use api::receive;
+use chrono::{Duration as ChronoDuration, Local, NaiveTime};
 use clap::Parser;
 use reqwest::header::HeaderMap;
 use serde::{Deserialize, Serialize};
-use std::fs;
-use std::path::PathBuf;
-use chrono::{Local, Timelike, Datelike, NaiveTime, Duration as ChronoDuration};
-use tokio::time::{sleep, Duration};
-use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::{
+    fs,
+    fs::File,
+    io::{BufRead, BufReader},
+    path::PathBuf,
+};
+use tokio::time::{Duration, sleep};
+use tokio::runtime::Builder;
+use crate::utils::config::AppConfig;
+use crate::utils::request::Request;
+use futures::future::join_all;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -45,13 +51,24 @@ pub struct HeaderConfig {
 // Body
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct BodyConfig {
-    pub communityId: String,
-    pub redPackTaskId: String,
-    pub zoneId: String,
+    pub community_id: String,
+    pub red_pack_task_id: String,
+    pub zone_id: String,
 }
 
-#[tokio::main]
-async fn main() {
+fn main() {
+    let config = AppConfig::from_ini("setting.ini");
+    let runtime = Builder::new_multi_thread()
+        .worker_threads(config.thread_num)
+        .enable_all()
+        .build()
+        .unwrap();
+
+    let request = Request::new(config.thread);
+    runtime.block_on(async_main(request, config));
+}
+
+async fn async_main(_request: Request, config: AppConfig) {
     let cli = Cli::parse();
     let config_content = fs::read_to_string(&cli.config).expect("无法读取配置文件，请检查路径");
     println!("config_content: {}", config_content);
@@ -74,7 +91,8 @@ async fn main() {
         }
     }
     println!("定时配置: {}", trigger_time_str);
-    let target_time = NaiveTime::parse_from_str(&trigger_time_str, "%H:%M:%S").unwrap_or_else(|_| NaiveTime::from_hms_opt(18, 59, 59).unwrap());
+    let target_time = NaiveTime::parse_from_str(&trigger_time_str, "%H:%M:%S")
+        .unwrap_or_else(|_| NaiveTime::from_hms_opt(18, 59, 59).unwrap());
 
     // 设置请求头
     let mut header = HeaderMap::new();
@@ -107,13 +125,20 @@ async fn main() {
         }
         // 到点后调用请求
         println!("到点，开始发送请求");
-        receive::receive(params.clone()).await;
+        // 按 send_num 并发调用 receive::receive
+        let mut handles = vec![];
+        for _ in 0..config.send_num {
+            let params = params.clone();
+            handles.push(tokio::spawn(async move {
+                receive::receive(params).await;
+            }));
+        }
+        join_all(handles).await;
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use reqwest::{Client, Proxy};
 
     #[tokio::test]
