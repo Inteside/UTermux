@@ -74,7 +74,11 @@ async fn async_main(_request: Request, config: AppConfig) {
     println!("config_content: {}", config_content);
     let account: ConfigFile = serde_json::from_str(&config_content).expect("配置文件格式错误");
     println!("账号配置: {:#?}", account);
-    println!("定时: {} 秒, 并发: {}", cli.interval, cli.concurrency);
+    // 打印配置文件
+    println!("线程数: {:#?}", config.thread_num);
+    println!("并发数: {:#?}", config.send_num);
+    println!("定时: {:#?}", config.thread);
+    println!("发送次数: {:#?}", config.send_num);
 
     // 读取 setting.ini 的定时配置
     let mut trigger_time_str = String::from("18:59:59"); // 默认值

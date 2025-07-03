@@ -1,6 +1,7 @@
 use std::fs;
 use std::collections::HashMap;
 
+#[derive(Debug)]
 pub struct AppConfig {
     pub thread: usize,
     pub thread_num: usize,
