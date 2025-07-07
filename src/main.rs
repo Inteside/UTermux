@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{
     fs,
     fs::File,
-    io::{BufRead, BufReader},
+    io::{BufRead, BufReader, Write},
     path::PathBuf,
 };
 use tokio::time::{Duration, sleep};
@@ -17,6 +17,8 @@ use tokio::runtime::Builder;
 use crate::utils::config::AppConfig;
 use crate::utils::request::Request;
 use futures::future::join_all;
+use std::fs::OpenOptions;
+use env_logger;
 
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -57,6 +59,26 @@ pub struct BodyConfig {
 }
 
 fn main() {
+    // 初始化日志到文件
+    let log_file = OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open("log")
+        .unwrap();
+
+    env_logger::Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{} {}] {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(),
+                record.args()
+            )
+        })
+        .filter_level(log::LevelFilter::Info)
+        .target(env_logger::Target::Pipe(Box::new(log_file)))
+        .init();
     let config = AppConfig::from_ini("setting.ini");
     let runtime = Builder::new_multi_thread()
         .worker_threads(config.thread_num)
@@ -71,14 +93,14 @@ fn main() {
 async fn async_main(_request: Request, config: AppConfig) {
     let cli = Cli::parse();
     let config_content = fs::read_to_string(&cli.config).expect("无法读取配置文件，请检查路径");
-    println!("config_content: {}", config_content);
+    log::info!("config_content: {}", config_content);
     let account: ConfigFile = serde_json::from_str(&config_content).expect("配置文件格式错误");
-    println!("账号配置: {:#?}", account);
+    log::info!("账号配置: {:#?}", account);
     // 打印配置文件
-    println!("线程数: {:#?}", config.thread_num);
-    println!("并发数: {:#?}", config.send_num);
-    println!("定时: {:#?}", config.thread);
-    println!("发送次数: {:#?}", config.send_num);
+    log::info!("线程数: {:#?}", config.thread_num);
+    log::info!("并发数: {:#?}", config.send_num);
+    log::info!("定时: {:#?}", config.thread);
+    log::info!("发送次数: {:#?}", config.send_num);
 
     // 读取 setting.ini 的定时配置
     let mut trigger_time_str = String::from("18:59:59"); // 默认值

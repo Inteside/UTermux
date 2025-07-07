@@ -1,0 +1,66 @@
+[2025-07-07 19:20:16 INFO] config_content: {
+  "header": {
+    "auth_token": "d8AZUpWrOsfV1GUfqhPS4EQ08BfnRuJ2xIRU0hrPRCD9l32AHpr5QgqtPysy5y_cLJ5vuDm34Cwj2fltIbFO6HFfVzG85e550Q2svY1FfVisWsScTsPNhF89U7XCb7Tp6UWvv2SAq22V2NfQW17DZUC8MNXD-zmIXV2AhZaBBNzKJ2dXeb7-nZBdaxATxrnOz9r6AOlgOeBNRthrO3Vr",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+  },
+  "body": {
+    "community_id": "54",
+    "red_pack_task_id": "66578",
+    "zone_id": "214"
+  }
+}
+[2025-07-07 19:20:16 INFO] 账号配置: ConfigFile {
+    header: HeaderConfig {
+        auth_token: "d8AZUpWrOsfV1GUfqhPS4EQ08BfnRuJ2xIRU0hrPRCD9l32AHpr5QgqtPysy5y_cLJ5vuDm34Cwj2fltIbFO6HFfVzG85e550Q2svY1FfVisWsScTsPNhF89U7XCb7Tp6UWvv2SAq22V2NfQW17DZUC8MNXD-zmIXV2AhZaBBNzKJ2dXeb7-nZBdaxATxrnOz9r6AOlgOeBNRthrO3Vr",
+        user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36",
+    },
+    body: BodyConfig {
+        community_id: "54",
+        red_pack_task_id: "66578",
+        zone_id: "214",
+    },
+}
+[2025-07-07 19:20:16 INFO] 线程数: 2
+[2025-07-07 19:20:16 INFO] 并发数: 10
+[2025-07-07 19:20:16 INFO] 定时: 10
+[2025-07-07 19:20:16 INFO] 发送次数: 10
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:29 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""
+[2025-07-07 19:20:30 INFO] 请求成功: ""

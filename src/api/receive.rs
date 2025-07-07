@@ -4,6 +4,7 @@ use crate::utils::request;
 use reqwest::Method;
 use reqwest::header::HeaderMap;
 use serde_json::json;
+use log::{info, error};
 
 #[derive(Clone, Debug)]
 pub struct Receive {
@@ -27,11 +28,12 @@ pub async fn receive(params: Receive) {
         }).to_string(),
     };
     let result = request.request(request_body).await;
+    
     if result.is_err() {
-        println!("请求失败: {:?}", result.err());
+        error!("请求失败: {:?}", result.err());
         // 打印请求之后的请求头
     } else {
-        println!("请求成功: {:?}", result.unwrap());
+        info!("请求成功: {:?}", result.unwrap());
     }
 }
 
@@ -50,6 +52,7 @@ mod tests {
                 zone_id: "214".to_string(),
             },
         };
-        receive(params).await;
+        let result = receive(params).await;
+        println!("result: {:?}", result);
     }
 }
